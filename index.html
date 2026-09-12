@@ -1,0 +1,715 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Edge Finder — NIFTY Strategy Research Assistant</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0E1116;
+    --panel:#151A21;
+    --panel-2:#1B212A;
+    --border:#262D38;
+    --text:#E8EAED;
+    --muted:#8B96A3;
+    --accent:#4C8EFF;
+    --accent-soft:rgba(76,142,255,0.12);
+    --warn:#E8A94C;
+    --warn-soft:rgba(232,169,76,0.12);
+    --neg:#E5626B;
+    --neg-soft:rgba(229,98,107,0.12);
+    --radius:10px;
+    --font-head:'Space Grotesk', system-ui, sans-serif;
+    --font-body:'IBM Plex Sans', system-ui, sans-serif;
+    --font-mono:'IBM Plex Mono', ui-monospace, SFMono-Regular, monospace;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:var(--font-body);
+    line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+  }
+  @media (prefers-reduced-motion: reduce){
+    *{animation-duration:0.001ms !important; transition-duration:0.001ms !important;}
+  }
+  .wrap{max-width:760px; margin:0 auto; padding:40px 20px 80px;}
+  header.top{margin-bottom:28px;}
+  .eyebrow{color:var(--accent); font-family:var(--font-mono); font-size:13px; letter-spacing:0.02em;}
+  h1{
+    font-family:var(--font-head);
+    font-weight:600;
+    font-size:clamp(26px,4vw,34px);
+    margin:6px 0 8px;
+    letter-spacing:-0.01em;
+  }
+  .sub{color:var(--muted); font-size:15px; max-width:56ch;}
+
+  /* stepper */
+  .stepper{
+    display:flex; gap:0; margin:32px 0 24px; border:1px solid var(--border);
+    border-radius:var(--radius); overflow:hidden; background:var(--panel);
+  }
+  .step{
+    flex:1; padding:12px 10px; text-align:center; font-family:var(--font-mono);
+    font-size:12px; color:var(--muted); border-right:1px solid var(--border);
+    position:relative; transition:color .2s ease, background-color .2s ease;
+  }
+  .step:last-child{border-right:none;}
+  .step .name{display:block; margin-top:2px; font-family:var(--font-body); font-size:12.5px;}
+  .step.active{color:var(--accent); background:var(--accent-soft);}
+  .step.done{color:var(--text);}
+  .step.done::after{content:"✓"; position:absolute; top:6px; right:8px; color:var(--accent); font-size:11px;}
+
+  .stage{
+    background:var(--panel); border:1px solid var(--border); border-radius:var(--radius);
+    padding:24px; margin-bottom:16px; display:none;
+  }
+  .stage.visible{display:block;}
+  .stage h2{font-family:var(--font-head); font-size:19px; margin:0 0 4px; font-weight:600;}
+  .stage .hint{color:var(--muted); font-size:13.5px; margin:0 0 18px;}
+
+  textarea{
+    width:100%; min-height:84px; background:var(--panel-2); color:var(--text);
+    border:1px solid var(--border); border-radius:8px; padding:12px 14px;
+    font-family:var(--font-body); font-size:15px; resize:vertical;
+  }
+  textarea:focus, input:focus, select:focus{outline:2px solid var(--accent); outline-offset:1px;}
+
+  .examples{display:flex; flex-wrap:wrap; gap:8px; margin:12px 0 18px;}
+  .chip{
+    font-family:var(--font-mono); font-size:12px; color:var(--muted);
+    border:1px solid var(--border); border-radius:20px; padding:6px 12px;
+    background:transparent; cursor:pointer; text-align:left;
+  }
+  .chip:hover{border-color:var(--accent); color:var(--text);}
+
+  .btn{
+    font-family:var(--font-body); font-weight:600; font-size:14.5px;
+    background:var(--accent); color:#0B0F13; border:none; border-radius:8px;
+    padding:11px 20px; cursor:pointer;
+  }
+  .btn:hover{filter:brightness(1.08);}
+  .btn.secondary{background:transparent; color:var(--text); border:1px solid var(--border);}
+  .btn.secondary:hover{border-color:var(--muted);}
+  .btn:disabled{opacity:0.5; cursor:not-allowed;}
+
+  .field-row{display:flex; gap:14px; align-items:flex-start; flex-wrap:wrap;}
+
+  .clarify-card{
+    border-radius:8px; padding:14px 16px; margin-bottom:12px;
+    border-left:3px solid var(--border); background:var(--panel-2);
+  }
+  .clarify-card.from-question{border-left-color:var(--accent);}
+  .clarify-card.needs-input{border-left-color:var(--warn);}
+  .clarify-card .tag{
+    font-family:var(--font-mono); font-size:11px; text-transform:none;
+    padding:2px 8px; border-radius:10px; display:inline-block; margin-bottom:6px;
+  }
+  .from-question .tag{background:var(--accent-soft); color:var(--accent);}
+  .needs-input .tag{background:var(--warn-soft); color:var(--warn);}
+  .clarify-card label{display:block; font-size:14px; margin-bottom:8px; color:var(--text);}
+  .clarify-card input, .clarify-card select{
+    width:100%; max-width:260px; background:var(--bg); color:var(--text);
+    border:1px solid var(--border); border-radius:6px; padding:8px 10px;
+    font-family:var(--font-mono); font-size:14px;
+  }
+  .clarify-card .unit{color:var(--muted); font-size:13px; margin-left:8px;}
+
+  .exp-card{
+    background:var(--panel-2); border:1px solid var(--border); border-radius:8px;
+    padding:4px 20px; margin-bottom:20px;
+  }
+  .exp-row{
+    display:flex; justify-content:space-between; gap:16px; padding:13px 0;
+    border-bottom:1px solid var(--border);
+  }
+  .exp-row:last-child{border-bottom:none;}
+  .exp-key{color:var(--muted); font-size:13.5px; flex:0 0 42%;}
+  .exp-val{font-family:var(--font-mono); font-size:14px; text-align:right; flex:1;}
+
+  .stat-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:12px; margin:18px 0 22px;}
+  .stat{background:var(--panel-2); border:1px solid var(--border); border-radius:8px; padding:14px 16px;}
+  .stat .num{font-family:var(--font-mono); font-size:22px; font-weight:600;}
+  .stat .num.pos{color:var(--accent);}
+  .stat .num.neg{color:var(--neg);}
+  .stat .lbl{color:var(--muted); font-size:12.5px; margin-top:4px;}
+
+  .learn-block{margin-bottom:20px;}
+  .learn-block h3{font-family:var(--font-head); font-size:15px; margin:0 0 8px; font-weight:600;}
+  .learn-block p, .learn-block li{font-size:14.5px; color:#CBD1D9;}
+  .learn-block.data h3{color:var(--text);}
+  .learn-block.conclude h3{color:var(--accent);}
+  .learn-block.next h3{color:var(--warn);}
+  .sim-flag{
+    font-family:var(--font-mono); font-size:11.5px; color:var(--warn);
+    border:1px dashed var(--warn); border-radius:6px; padding:6px 10px; display:inline-block;
+    margin-bottom:14px;
+  }
+
+  .advanced{margin-top:10px;}
+  .advanced summary{cursor:pointer; color:var(--muted); font-size:13px; font-family:var(--font-mono);}
+  .advanced-body{margin-top:10px; padding:14px; background:var(--panel-2); border-radius:8px; border:1px solid var(--border);}
+  .advanced-body input, .advanced-body select{
+    background:var(--bg); color:var(--text); border:1px solid var(--border);
+    border-radius:6px; padding:7px 10px; font-family:var(--font-mono); font-size:13px;
+  }
+  .advanced-body .note{color:var(--muted); font-size:12.5px; margin-top:8px;}
+
+  .actions{display:flex; gap:10px; margin-top:6px; flex-wrap:wrap;}
+  footer.note{color:var(--muted); font-size:12.5px; margin-top:30px; text-align:center;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="top">
+    <span class="eyebrow">edge finder — prototype</span>
+    <h1>Turn a trading question into a testable experiment</h1>
+    <p class="sub">Type a question about NIFTY the way you'd ask a colleague. The assistant structures it, asks what's missing, and runs it against simulated data so you can see the reasoning end to end.</p>
+  </header>
+
+  <nav class="stepper" id="stepper" aria-label="Progress">
+    <div class="step" data-step="ask">01<span class="name">Ask</span></div>
+    <div class="step" data-step="clarify">02<span class="name">Clarify</span></div>
+    <div class="step" data-step="define">03<span class="name">Define</span></div>
+    <div class="step" data-step="test">04<span class="name">Test</span></div>
+    <div class="step" data-step="learn">05<span class="name">Learn</span></div>
+  </nav>
+
+  <!-- STAGE 1: ASK -->
+  <section class="stage" id="stage-ask">
+    <h2>Ask your question</h2>
+    <p class="hint">Write it in plain language — no need to specify every parameter.</p>
+    <textarea id="questionInput" placeholder="e.g. Does buying NIFTY after a 1% fall work better during high-volatility periods?"></textarea>
+    <div class="examples" id="examples"></div>
+
+    <details class="advanced">
+      <summary>Advanced: parse with an LLM instead of the built-in rules (optional)</summary>
+      <div class="advanced-body">
+        <div class="field-row">
+          <select id="llmProvider">
+            <option value="none">Off — use built-in rule-based parser</option>
+            <option value="openai">OpenAI (gpt-4o-mini)</option>
+          </select>
+          <input type="password" id="llmKey" placeholder="API key (kept in memory only, never stored)" style="flex:1; min-width:220px;">
+        </div>
+        <p class="note">This calls the provider directly from your browser for demo purposes only — a real product would proxy this through a backend so the key is never exposed client-side. If the call fails for any reason (no key, CORS, rate limit), the app falls back to the rule-based parser automatically so the demo never breaks.</p>
+      </div>
+    </details>
+
+    <div class="actions" style="margin-top:18px;">
+      <button class="btn" id="analyzeBtn">Analyze question</button>
+    </div>
+  </section>
+
+  <!-- STAGE 2: CLARIFY -->
+  <section class="stage" id="stage-clarify">
+    <h2>A few things aren't specified yet</h2>
+    <p class="hint">Cards tagged <em>from your question</em> were read from what you typed. Cards tagged <em>suggested default</em> are my assumptions — check them before we lock in the experiment.</p>
+    <div id="clarifyList"></div>
+    <div class="actions">
+      <button class="btn" id="confirmBtn">Confirm &amp; build experiment</button>
+      <button class="btn secondary" id="backToAsk">Back</button>
+    </div>
+  </section>
+
+  <!-- STAGE 3: DEFINE -->
+  <section class="stage" id="stage-define">
+    <h2>Structured experiment</h2>
+    <p class="hint">This is exactly what will be tested — nothing hidden.</p>
+    <div id="streakWarning" style="display:none; margin-bottom:14px;">
+      <span class="sim-flag">⚠ Your question mentions a multi-day streak (e.g. "days in a row"). This prototype only models a single day's move, so it will test that instead of the streak — flagging it rather than silently ignoring it.</span>
+    </div>
+    <div class="exp-card" id="expCard"></div>
+    <div class="actions">
+      <button class="btn" id="runBtn">Run on simulated data</button>
+      <button class="btn secondary" id="backToClarify">Edit assumptions</button>
+    </div>
+  </section>
+
+  <!-- STAGE 4: TEST (brief transitional, mostly auto-advances to LEARN) -->
+  <section class="stage" id="stage-test">
+    <h2>Running the experiment</h2>
+    <p class="hint" id="testStatus">Generating a simulated price series and scanning for matching entries…</p>
+  </section>
+
+  <!-- STAGE 5: LEARN -->
+  <section class="stage" id="stage-learn">
+    <h2>Result</h2>
+    <span class="sim-flag">⚠ SIMULATED DATA — not real NIFTY prices. See note below.</span>
+    <div class="stat-grid" id="statGrid"></div>
+
+    <div class="learn-block data">
+      <h3>What the data shows</h3>
+      <ul id="dataShows"></ul>
+    </div>
+    <div class="learn-block conclude">
+      <h3>What we can reasonably conclude</h3>
+      <p id="conclusionText"></p>
+    </div>
+    <div class="learn-block next">
+      <h3>What to investigate next</h3>
+      <ul id="nextSteps"></ul>
+    </div>
+
+    <div class="actions">
+      <button class="btn secondary" id="restartBtn">Try another question</button>
+    </div>
+  </section>
+
+  <footer class="note">Rule-based extraction + a seeded synthetic market model. No real market data is used. Built as a research-workflow prototype, not a trading tool.</footer>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ---------------------------------------------------------
+     0. Small utilities: seeded RNG so results are reproducible
+  --------------------------------------------------------- */
+  function hashStringToSeed(str){
+    let h = 1779033703 ^ str.length;
+    for (let i = 0; i < str.length; i++){
+      h = Math.imul(h ^ str.charCodeAt(i), 3432918353);
+      h = (h << 13) | (h >>> 19);
+    }
+    return (h ^ (h >>> 16)) >>> 0;
+  }
+  function mulberry32(seed){
+    let a = seed >>> 0;
+    return function(){
+      a |= 0; a = (a + 0x6D2B79F5) | 0;
+      let t = Math.imul(a ^ (a >>> 15), 1 | a);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+  function randNormal(rng){
+    let u = 0, v = 0;
+    while (u === 0) u = rng();
+    while (v === 0) v = rng();
+    return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
+  }
+
+  /* ---------------------------------------------------------
+     1. ASK -> rule-based extraction
+     Returns { fields, found } where `found` marks which keys
+     were read directly from the question text.
+  --------------------------------------------------------- */
+  function parseQuestion(raw){
+    const text = raw.toLowerCase();
+    const fields = {
+      instrument: 'NIFTY',
+      direction: null,
+      thresholdPct: null,
+      filterVol: null,
+      holdingPeriodDays: null,
+      exitType: null,
+      testPeriodYears: null,
+      costPct: null
+    };
+    const found = new Set();
+
+    if (/bank\s*nifty/.test(text)) { fields.instrument = 'BANK NIFTY'; found.add('instrument'); }
+    else if (/sensex/.test(text)) { fields.instrument = 'SENSEX'; found.add('instrument'); }
+    else if (/nifty/.test(text)) { fields.instrument = 'NIFTY'; found.add('instrument'); }
+
+    const pctMatch = text.match(/(\d+(?:\.\d+)?)\s?%/);
+    if (pctMatch) { fields.thresholdPct = parseFloat(pctMatch[1]); found.add('thresholdPct'); }
+
+    if (/\b(falls?|falling|fell|drop(s|ping)?|declin(e|es|ing)|sharp fall|correction|red day|sell.?off)\b/.test(text)) {
+      fields.direction = 'fall'; found.add('direction');
+    } else if (/\b(rise|rises|rising|rose|rall(y|ies|ying)|gain(s)?|up move|green day)\b/.test(text)) {
+      fields.direction = 'rise'; found.add('direction');
+    }
+
+    if (/high[\s-]?volatility|elevated volatility|high[\s-]?vol\b/.test(text)) { fields.filterVol = 'high'; found.add('filterVol'); }
+    else if (/low[\s-]?volatility|calm market|low[\s-]?vol\b/.test(text)) { fields.filterVol = 'low'; found.add('filterVol'); }
+
+    const holdMatch = text.match(/(\d+)\s?(day|days|week|weeks|session|sessions)/);
+    if (holdMatch) {
+      let n = parseInt(holdMatch[1], 10);
+      if (/week/.test(holdMatch[2])) n = n * 5;
+      fields.holdingPeriodDays = n; found.add('holdingPeriodDays');
+    }
+
+    if (/stop[\s-]?loss/.test(text)) { fields.exitType = 'Stop-loss'; found.add('exitType'); }
+    if (/target|take[\s-]?profit/.test(text)) {
+      fields.exitType = fields.exitType ? fields.exitType + ' + target' : 'Target'; found.add('exitType');
+    }
+
+    const yrMatch = text.match(/(?:last|past)\s?(\d+)\s?year/);
+    if (yrMatch) { fields.testPeriodYears = parseInt(yrMatch[1], 10); found.add('testPeriodYears'); }
+
+    return { fields, found };
+  }
+
+  // Flag (don't silently absorb) multi-day streak language the single-day
+  // entry model below can't represent, e.g. "3 days in a row". Checked
+  // regardless of which parser ran, since it's a modeling limitation, not
+  // an extraction gap.
+  function hasStreakLanguage(text){
+    return /in a row|consecutive|straight days|back.to.back/i.test(text);
+  }
+
+  /* Optional: LLM-based extraction (best effort, falls back silently) */
+  async function parseWithLLM(raw, provider, key){
+    if (provider !== 'openai' || !key) return null;
+    const schema = `Return ONLY minified JSON with keys: instrument (string), direction ("fall"|"rise"|null),
+      thresholdPct (number|null), filterVol ("high"|"low"|null), holdingPeriodDays (integer|null),
+      exitType (string|null), testPeriodYears (integer|null). No prose, no markdown fences.`;
+    try {
+      const res = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + key },
+        body: JSON.stringify({
+          model: 'gpt-4o-mini',
+          temperature: 0,
+          messages: [
+            { role: 'system', content: schema },
+            { role: 'user', content: raw }
+          ]
+        })
+      });
+      if (!res.ok) return null;
+      const data = await res.json();
+      const text = data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content;
+      if (!text) return null;
+      const cleaned = text.replace(/```json|```/g, '').trim();
+      const parsed = JSON.parse(cleaned);
+      const found = new Set(Object.keys(parsed).filter(k => parsed[k] !== null && parsed[k] !== undefined));
+      return { fields: Object.assign({ instrument: 'NIFTY' }, parsed), found };
+    } catch (e){
+      console.warn('LLM extraction failed, falling back to rule-based parser.', e);
+      return null;
+    }
+  }
+
+  /* ---------------------------------------------------------
+     2. CLARIFY definitions — label, default, and how to render
+  --------------------------------------------------------- */
+  const CLARIFY_DEFS = [
+    { key: 'thresholdPct', label: 'What size move counts as significant?', type: 'number', unit: '%', default: 1.5, step: '0.1' },
+    { key: 'holdingPeriodDays', label: 'How many trading days should the position be held?', type: 'number', unit: 'days', default: 3, step: '1' },
+    { key: 'exitType', label: 'Any exit rule besides time?', type: 'select', options: ['Time-based only', 'Stop-loss + target'], default: 'Time-based only' },
+    { key: 'testPeriodYears', label: 'How many years of history should we test?', type: 'number', unit: 'years', default: 5, step: '1' },
+    { key: 'filterVol', label: 'Restrict to a volatility regime?', type: 'select', options: ['No filter', 'High volatility only', 'Low volatility only'], default: 'No filter',
+      fromValue: v => v === 'high' ? 'High volatility only' : v === 'low' ? 'Low volatility only' : 'No filter' },
+    { key: 'costPct', label: 'Round-trip cost assumption (brokerage + STT + slippage)', type: 'number', unit: '%', default: 0.10, step: '0.01' }
+  ];
+
+  /* ---------------------------------------------------------
+     3. TEST — synthetic market + backtest
+  --------------------------------------------------------- */
+  function runBacktest(exp, seedStr){
+    const rng = mulberry32(hashStringToSeed(seedStr));
+    const days = Math.max(exp.testPeriodYears, 1) * 252;
+    const mu = 0.0003;          // modest positive daily drift, roughly index-like
+    const lowVol = 0.008, highVol = 0.018;
+    let vol = lowVol;
+    const rets = [];
+    for (let i = 0; i < days; i++){
+      if (rng() < 0.03) vol = (vol === lowVol) ? highVol : lowVol; // regime switches
+      rets.push(mu + randNormal(rng) * vol);
+    }
+
+    const window = 20;
+    const rollingVol = new Array(days).fill(null);
+    for (let i = window; i < days; i++){
+      const slice = rets.slice(i - window, i);
+      const mean = slice.reduce((a, b) => a + b, 0) / window;
+      const variance = slice.reduce((a, b) => a + (b - mean) * (b - mean), 0) / window;
+      rollingVol[i] = Math.sqrt(variance);
+    }
+    const validVols = rollingVol.filter(v => v !== null).slice().sort((a, b) => a - b);
+    const medianVol = validVols[Math.floor(validVols.length / 2)];
+
+    const hp = exp.holdingPeriodDays;
+    const thresh = exp.thresholdPct / 100;
+    const dirIsFall = exp.direction !== 'rise';
+    const wantHighVol = exp.filterVol === 'high';
+    const wantLowVol = exp.filterVol === 'low';
+    const costFrac = (exp.costPct || 0) / 100;
+
+    const entryReturns = [];
+    const baselineReturns = [];
+
+    for (let i = window; i < days - hp; i++){
+      let fwd = 0;
+      for (let k = 1; k <= hp; k++) fwd += rets[i + k];
+      baselineReturns.push(fwd - costFrac);
+
+      const meetsMove = dirIsFall ? rets[i] <= -thresh : rets[i] >= thresh;
+      const volOk = rollingVol[i] === null ? true :
+        (wantHighVol ? rollingVol[i] > medianVol : wantLowVol ? rollingVol[i] <= medianVol : true);
+
+      if (meetsMove && volOk) entryReturns.push(fwd - costFrac);
+    }
+
+    function stats(arr){
+      const n = arr.length;
+      if (n === 0) return { n, mean: 0, winRate: 0, stdev: 0, se: 0 };
+      const mean = arr.reduce((a, b) => a + b, 0) / n;
+      const variance = arr.reduce((a, b) => a + (b - mean) * (b - mean), 0) / Math.max(n - 1, 1);
+      const stdev = Math.sqrt(variance);
+      const wins = arr.filter(x => x > 0).length;
+      return { n, mean, winRate: wins / n, stdev, se: stdev / Math.sqrt(n) };
+    }
+
+    const entryStats = stats(entryReturns);
+    const baselineStats = stats(baselineReturns);
+    const edge = entryStats.mean - baselineStats.mean;
+    const totalDays = days - window - hp;
+
+    return { entryStats, baselineStats, edge, totalDays };
+  }
+
+  /* ---------------------------------------------------------
+     4. App state + wiring
+  --------------------------------------------------------- */
+  const state = { raw: '', fields: null, found: null, experiment: null, lastResult: null };
+
+  const EXAMPLES = [
+    'Does buying NIFTY after a 1% fall work better during high-volatility periods?',
+    'Does buying NIFTY after a sharp fall work?',
+    'Does BANK NIFTY rally after 3 green days in a row over the last 5 years?',
+    'Does buying NIFTY after a 2% fall work with a 10 day holding period?'
+  ];
+
+  const stages = ['ask', 'clarify', 'define', 'test', 'learn'];
+  function showStage(name){
+    stages.forEach(s => {
+      document.getElementById('stage-' + s).classList.toggle('visible', s === name);
+    });
+    document.querySelectorAll('.step').forEach(el => {
+      const s = el.getAttribute('data-step');
+      el.classList.toggle('active', s === name);
+      el.classList.toggle('done', stages.indexOf(s) < stages.indexOf(name));
+    });
+  }
+
+  function pct(x, digits){ return (x * 100).toFixed(digits === undefined ? 2 : digits) + '%'; }
+
+  function fmtFieldValue(def, value){
+    if (def.type === 'select' && def.fromValue) return value;
+    return value;
+  }
+
+  function renderClarify(){
+    const list = document.getElementById('clarifyList');
+    list.innerHTML = '';
+    CLARIFY_DEFS.forEach(def => {
+      const rawVal = state.fields[def.key];
+      const isKnown = state.found.has(def.key) && rawVal !== null && rawVal !== undefined;
+      const card = document.createElement('div');
+      card.className = 'clarify-card ' + (isKnown ? 'from-question' : 'needs-input');
+
+      const tag = document.createElement('span');
+      tag.className = 'tag';
+      tag.textContent = isKnown ? 'from your question' : 'suggested default — confirm';
+      card.appendChild(tag);
+
+      const label = document.createElement('label');
+      label.textContent = def.label;
+      card.appendChild(label);
+
+      let inputEl;
+      if (def.type === 'number'){
+        inputEl = document.createElement('input');
+        inputEl.type = 'number';
+        inputEl.step = def.step || '1';
+        inputEl.value = isKnown ? rawVal : def.default;
+      } else {
+        inputEl = document.createElement('select');
+        def.options.forEach(opt => {
+          const o = document.createElement('option');
+          o.value = opt; o.textContent = opt;
+          inputEl.appendChild(o);
+        });
+        const current = isKnown && def.fromValue ? def.fromValue(rawVal) : (isKnown ? rawVal : def.default);
+        inputEl.value = current;
+      }
+      inputEl.id = 'clarify_' + def.key;
+      card.appendChild(inputEl);
+
+      if (def.unit){
+        const unit = document.createElement('span');
+        unit.className = 'unit';
+        unit.textContent = def.unit;
+        card.appendChild(unit);
+      }
+      list.appendChild(card);
+    });
+  }
+
+  function collectExperiment(){
+    const exp = {
+      instrument: state.fields.instrument,
+      direction: state.fields.direction || 'fall',
+      question: state.raw
+    };
+    CLARIFY_DEFS.forEach(def => {
+      const el = document.getElementById('clarify_' + def.key);
+      let val = el.value;
+      if (def.type === 'number') val = parseFloat(val);
+      if (def.key === 'filterVol'){
+        val = val === 'High volatility only' ? 'high' : val === 'Low volatility only' ? 'low' : null;
+      }
+      exp[def.key] = val;
+    });
+    return exp;
+  }
+
+  function renderDefine(exp){
+    document.getElementById('streakWarning').style.display = state.streakDetected ? 'block' : 'none';
+    const card = document.getElementById('expCard');
+    const rows = [
+      ['Market', exp.instrument],
+      ['Timeframe', 'Daily'],
+      ['Entry condition', (exp.direction === 'fall' ? 'Close-to-close fall ≥ ' : 'Close-to-close rise ≥ ') + exp.thresholdPct + '%'],
+      ['Filter', exp.filterVol === 'high' ? 'High-volatility days only (rolling 20-day realized vol above series median)'
+                : exp.filterVol === 'low' ? 'Low-volatility days only (rolling 20-day realized vol at/below series median)'
+                : 'None — all qualifying days included'],
+      ['Exit', exp.exitType],
+      ['Holding period', exp.holdingPeriodDays + ' trading days'],
+      ['Test period', 'Simulated series, ' + exp.testPeriodYears + ' years'],
+      ['Cost assumption', exp.costPct + '% round-trip (brokerage + STT + slippage estimate)'],
+      ['Hypothesis', 'The entry condition produces a forward return, net of costs, that is meaningfully different from an unconditional day.']
+    ];
+    card.innerHTML = '';
+    rows.forEach(([k, v]) => {
+      const row = document.createElement('div');
+      row.className = 'exp-row';
+      row.innerHTML = '<div class="exp-key"></div><div class="exp-val"></div>';
+      row.children[0].textContent = k;
+      row.children[1].textContent = v;
+      card.appendChild(row);
+    });
+  }
+
+  function renderLearn(exp, result){
+    const { entryStats, baselineStats, edge, totalDays } = result;
+
+    const grid = document.getElementById('statGrid');
+    grid.innerHTML = '';
+    const cells = [
+      ['Occurrences found', entryStats.n + ' / ' + totalDays + ' days'],
+      ['Win rate (net of cost)', pct(entryStats.winRate, 1)],
+      ['Avg return per trade', pct(entryStats.mean), entryStats.mean >= 0],
+      ['Baseline avg (any day)', pct(baselineStats.mean)],
+      ['Edge vs baseline', pct(edge), edge >= 0],
+      ['Std. error of edge sample', pct(entryStats.se)]
+    ];
+    cells.forEach(([label, val, positive]) => {
+      const d = document.createElement('div');
+      d.className = 'stat';
+      const numClass = positive === undefined ? '' : (positive ? 'pos' : 'neg');
+      d.innerHTML = '<div class="num ' + numClass + '"></div><div class="lbl"></div>';
+      d.children[0].textContent = val;
+      d.children[1].textContent = label;
+      grid.appendChild(d);
+    });
+
+    document.getElementById('dataShows').innerHTML =
+      '<li>' + entryStats.n + ' out of ' + totalDays + ' simulated trading days matched the entry condition' +
+      (exp.filterVol ? ' and the volatility filter' : '') + '.</li>' +
+      '<li>Average forward return after those entries: ' + pct(entryStats.mean) + ', vs ' + pct(baselineStats.mean) +
+      ' for an unconditional day over the same holding period — a difference of ' + pct(edge) + '.</li>' +
+      '<li>The standard error of the entry-day sample is ' + pct(entryStats.se) +
+      ', which gives a rough sense of how much this number could move by chance alone.</li>';
+
+    let conclusion;
+    if (entryStats.n < 20){
+      conclusion = 'Only ' + entryStats.n + ' matching days turned up in this simulated series — too few to say anything reliable, positive or negative. The sample is the limiting factor here, not the strategy.';
+    } else if (Math.abs(edge) < entryStats.se){
+      conclusion = 'The ' + pct(edge) + ' edge is smaller than the sample\'s standard error, so on this simulated run it is indistinguishable from noise. That is actually the expected outcome: the simulated series is a random walk with no reversal pattern built into it, so a durable edge should not appear here by construction.';
+    } else {
+      conclusion = 'The ' + pct(edge) + ' edge exceeds one standard error of the baseline, meaning entry days behaved differently from a typical day in this specific simulated run. That is a signal worth investigating further — not proof of a real, tradable edge, and not something to act on from simulated data alone.';
+    }
+    conclusion += ' Treat this as a test of the reasoning pipeline — Ask → Clarify → Define → Test → Learn — and not as a verdict on the strategy. Answering the strategy question honestly needs real NIFTY history, which this synthetic series is standing in for.';
+    document.getElementById('conclusionText').textContent = conclusion;
+
+    document.getElementById('nextSteps').innerHTML = [
+      'Re-run the same experiment on real NIFTY historical data (e.g. NSE Bhavcopy or a market data vendor) instead of a simulated series.',
+      'Check sensitivity: does the result hold for a 0.5% or 2% threshold, or a 3- or 10-day holding period — or was ' + exp.thresholdPct + '% / ' + exp.holdingPeriodDays + ' days a lucky pick?',
+      'Split the test period into sub-periods (e.g. by year or market regime) to see if any edge is consistent or concentrated in one stretch.',
+      'Replace the simple standard-error check with a proper significance test (t-test or bootstrap) before trusting any "edge".',
+      'Model transaction costs and slippage more precisely instead of a flat assumption, especially for short holding periods.',
+      'If using real data, confirm prices aren\'t adjusted with information that would not have been available on the entry date (look-ahead bias).'
+    ].map(t => '<li>' + t + '</li>').join('');
+  }
+
+  /* ---------------------------------------------------------
+     5. Event wiring
+  --------------------------------------------------------- */
+  const examplesEl = document.getElementById('examples');
+  EXAMPLES.forEach(ex => {
+    const b = document.createElement('button');
+    b.className = 'chip';
+    b.textContent = ex.length > 58 ? ex.slice(0, 55) + '…' : ex;
+    b.title = ex;
+    b.addEventListener('click', () => { document.getElementById('questionInput').value = ex; });
+    examplesEl.appendChild(b);
+  });
+  document.getElementById('questionInput').value = EXAMPLES[0];
+
+  document.getElementById('analyzeBtn').addEventListener('click', async () => {
+    const raw = document.getElementById('questionInput').value.trim();
+    if (!raw) return;
+    state.raw = raw;
+
+    const provider = document.getElementById('llmProvider').value;
+    const key = document.getElementById('llmKey').value.trim();
+
+    const btn = document.getElementById('analyzeBtn');
+    btn.disabled = true; btn.textContent = 'Analyzing…';
+
+    let parsed = null;
+    if (provider !== 'none' && key) parsed = await parseWithLLM(raw, provider, key);
+    if (!parsed) parsed = parseQuestion(raw);
+
+    state.fields = parsed.fields;
+    state.found = parsed.found;
+    state.streakDetected = hasStreakLanguage(raw);
+
+    btn.disabled = false; btn.textContent = 'Analyze question';
+
+    renderClarify();
+    showStage('clarify');
+  });
+
+  document.getElementById('backToAsk').addEventListener('click', () => showStage('ask'));
+  document.getElementById('backToClarify').addEventListener('click', () => showStage('clarify'));
+
+  document.getElementById('confirmBtn').addEventListener('click', () => {
+    const exp = collectExperiment();
+    state.experiment = exp;
+    renderDefine(exp);
+    showStage('define');
+  });
+
+  document.getElementById('runBtn').addEventListener('click', () => {
+    showStage('test');
+    setTimeout(() => {
+      const result = runBacktest(state.experiment, state.raw + JSON.stringify(state.experiment));
+      state.lastResult = result;
+      renderLearn(state.experiment, result);
+      showStage('learn');
+    }, 350); // brief pause so "Running the experiment" is visible — not decorative, it reflects real work happening
+  });
+
+  document.getElementById('restartBtn').addEventListener('click', () => {
+    document.getElementById('questionInput').value = '';
+    showStage('ask');
+  });
+
+  showStage('ask');
+})();
+</script>
+</body>
+</html>
