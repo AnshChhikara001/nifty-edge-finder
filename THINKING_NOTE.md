@@ -1,8 +1,6 @@
 # Thinking Note
 **Question: "Does buying NIFTY after a sharp fall work?"**
 
-> Personalize this before submitting — rewrite the reasoning in your own words. Keep the structure; change the voice. Anything you'd genuinely think differently, change it.
-
 ## 1. Interpreting the question
 
 "Sharp fall" is doing a lot of work in this sentence and isn't defined. It could mean:

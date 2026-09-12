@@ -5,8 +5,8 @@ in the assignment. Given a plain-language trading question, it extracts a struct
 experiment, flags what's missing instead of guessing, and runs it against a simulated
 market so you can see the full reasoning loop end to end.
 
-**Live demo:** [add your deployed link here]
-**Repo:** [add your GitHub link here]
+**Live demo:** https://anshchhikara001.github.io/nifty-edge-finder/
+**Repo:** https://github.com/AnshChhikara001/nifty-edge-finder
 
 ## Architecture
 
